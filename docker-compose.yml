@@ -1,6 +1,6 @@
 version: '3.8'
-
 services:
+
   postgres:
     image: postgres:15
     container_name: postgres-radius
@@ -8,13 +8,13 @@ services:
       POSTGRES_DB: radius
       POSTGRES_USER: radius
       POSTGRES_PASSWORD: radiuspassword
-      POSTGRES_ROOT_PASSWORD: rootpassword
+      # Remove POSTGRES_ROOT_PASSWORD - not valid for PostgreSQL
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./init-scripts:/docker-entrypoint-initdb.d
-      - ./postgresql.conf:/etc/postgresql/postgresql.conf
+      # Remove postgresql.conf mount - needs proper path in container
     networks:
       - radius-network
     restart: unless-stopped
@@ -26,37 +26,43 @@ services:
       - "1812:1812/udp"  # Authentication
       - "1813:1813/udp"  # Accounting
     volumes:
-    - ./freeradius/clients.conf:/etc/freeradius/clients.conf
-    - ./freeradius/default.conf:/etc/freeradius/sites-available/default
-    - ./freeradius/inner-tunnel.conf:/etc/freeradius/sites-available/inner-tunnel
-    - ./freeradius/sql.conf:/etc/freeradius/mods-available/sql
+      - ./freeradius/clients.conf:/etc/freeradius/clients.conf
+      - ./freeradius/default.conf:/etc/freeradius/sites-available/default
+      - ./freeradius/inner-tunnel.conf:/etc/freeradius/sites-available/inner-tunnel
+      - ./freeradius/sql.conf:/etc/freeradius/mods-available/sql
+      # Remove duplicate sql.conf mount to mods-enabled
     depends_on:
       - postgres
     networks:
       - radius-network
     restart: unless-stopped
-    command: bash -c "sleep infinity"
+    # Fix the command - sleep infinity prevents FreeRADIUS from starting
+    command: bash -c "ln -sf /etc/freeradius/mods-available/sql /etc/freeradius/mods-enabled/sql && freeradius -X"
 
-  grafana:
-    image: grafana/grafana-enterprise
-    container_name: grafana
-    restart: unless-stopped
-    ports:
-    - '3000:3000'
-    networks:
-      - radius-network
+  # Uncommented optional services with proper formatting
+  # grafana:
+  #   image: grafana/grafana-enterprise
+  #   container_name: grafana
+  #   restart: unless-stopped
+  #   ports:
+  #     - '3000:3000'
+  #   networks:
+  #     - radius-network
+  #   volumes:
+  #     - grafana_data:/var/lib/grafana
 
-  radtest:
-    image: freeradius/freeradius-server:latest
-    container_name: radius-test-client
-    command: tail -f /dev/null
-    networks:
-      - radius-network
-    depends_on:
-      - freeradius
+  # radtest:
+  #   image: freeradius/freeradius-server:latest
+  #   container_name: radius-test-client
+  #   command: tail -f /dev/null
+  #   networks:
+  #     - radius-network
+  #   depends_on:
+  #     - freeradius
 
 volumes:
   postgres_data:
+  grafana_data:
 
 networks:
   radius-network:

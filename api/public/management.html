@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RADIUS User Management</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <div class="header-content">
+          <i class="fas fa-users-cog header-icon"></i>
+          <h1>RADIUS User Management</h1>
+          <button
+            id="logoutBtn"
+            class="btn btn-outline btn-sm"
+            style="margin-left: auto"
+          >
+            <i class="fas fa-sign-out-alt"></i> Logout
+          </button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">
+            <i class="fas fa-table"></i>
+            User Directory
+          </h2>
+        </div>
+        <div class="card-body">
+          <div class="toolbar">
+            <div class="toolbar-left">
+              <button id="bulkDeleteBtn" class="btn btn-danger btn-sm" disabled>
+                <span
+                  class="loading-spinner"
+                  id="bulkDeleteSpinner"
+                  style="display: none"
+                ></span>
+                <i class="fas fa-trash"></i>
+                Delete Selected (<span id="selectedCount">0</span>)
+              </button>
+              <button id="selectAllBtn" class="btn btn-outline btn-sm">
+                <i class="fas fa-check-square"></i>
+                Select All
+              </button>
+              <button
+                id="clearSelectionBtn"
+                class="btn btn-outline btn-sm"
+                disabled
+              >
+                <i class="fas fa-square"></i>
+                Clear Selection
+              </button>
+            </div>
+            <div class="toolbar-right">
+              <div class="stats">
+                <i class="fas fa-users"></i>
+                Total: <strong id="totalUsers">0</strong> users
+              </div>
+              <div class="search-container">
+                <i class="fas fa-search"></i>
+                <input
+                  type="text"
+                  id="searchInput"
+                  placeholder="Search username..."
+                  class="form-control"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div id="bulkDeleteConfirmation" class="confirmation-dialog">
+            <div class="confirmation-content">
+              <span>
+                <i class="fas fa-exclamation-triangle"></i>
+                Are you sure you want to delete
+                <strong id="confirmDeleteCount">0</strong> selected user(s)?
+              </span>
+              <div class="confirmation-actions">
+                <button id="confirmBulkDelete" class="btn btn-danger btn-sm">
+                  <i class="fas fa-check"></i>
+                  Yes, Delete
+                </button>
+                <button id="cancelBulkDelete" class="btn btn-outline btn-sm">
+                  <i class="fas fa-times"></i>
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="table-container">
+            <table class="table" id="userTable">
+              <thead>
+                <tr>
+                  <th style="width: 40px">
+                    <input
+                      type="checkbox"
+                      id="selectAll"
+                      class="checkbox-custom"
+                    />
+                  </th>
+                  <th>Username</th>
+                  <th>IP Address</th>
+                  <th>Status</th>
+                  <th>Download (MB)</th>
+                  <th>Upload (MB)</th>
+                  <th>MAC Address</th>
+                  <th>Start Time</th>
+                  <th>Stop Time</th>
+                  <th>Duration</th>
+                  <th style="width: 100px">Actions</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+
+          <div class="pagination">
+            <button id="prevPage" disabled>
+              <i class="fas fa-chevron-left"></i>
+              Previous
+            </button>
+            <span class="page-info" id="pageInfo">Page 1</span>
+            <button id="nextPage" disabled>
+              Next
+              <i class="fas fa-chevron-right"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">
+            <i class="fas fa-user-plus"></i>
+            Add New User
+          </h2>
+        </div>
+        <div class="card-body">
+          <form id="addUserForm" class="form-grid">
+            <div class="form-group">
+              <label class="form-label" for="username">Username</label>
+              <input
+                type="text"
+                class="form-control"
+                placeholder="Enter username"
+                id="username"
+                required
+              />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="password">Password</label>
+              <input
+                type="password"
+                class="form-control"
+                placeholder="Enter password"
+                id="password"
+                required
+              />
+            </div>
+            <button type="submit" class="btn btn-primary">
+              <i class="fas fa-plus"></i>
+              Add User
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">
+            <i class="fas fa-file-upload"></i>
+            Bulk Import Users
+          </h2>
+        </div>
+        <div class="card-body">
+          <div class="file-upload-area">
+            <div class="form-group" style="flex: 1">
+              <label class="form-label" for="fileUpload"
+                >Select CSV/Excel File</label
+              >
+              <input
+                type="file"
+                id="fileUpload"
+                accept=".xlsx,.xls,.csv"
+                class="form-control"
+              />
+            </div>
+            <button class="btn btn-success" onclick="uploadBulkUsers()">
+              <i class="fas fa-upload"></i>
+              Upload Users
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="myscript.js"></script>
+    <script>
+      const token = localStorage.getItem("authToken");
+      if (!token) window.location.href = "/login";
+    </script>
+
+    <script>
+      document
+        .getElementById("logoutBtn")
+        .addEventListener("click", function () {
+          localStorage.removeItem("authToken");
+          window.location.href = "/login";
+        });
+    </script>
+  </body>
+</html>

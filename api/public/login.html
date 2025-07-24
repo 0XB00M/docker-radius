@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RADIUS Management - Login</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .login-container {
+        background: white;
+        padding: 2rem;
+        border-radius: 10px;
+        box-shadow: 0 15px 25px rgba(0, 0, 0, 0.1);
+        width: 100%;
+        max-width: 400px;
+      }
+
+      .login-header {
+        text-align: center;
+        margin-bottom: 2rem;
+      }
+
+      .login-header h1 {
+        color: #333;
+        margin-bottom: 0.5rem;
+      }
+
+      .login-header p {
+        color: #666;
+        font-size: 0.9rem;
+      }
+
+      .form-group {
+        margin-bottom: 1.5rem;
+      }
+
+      .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        color: #333;
+        font-weight: 500;
+      }
+
+      .form-group input {
+        width: 100%;
+        padding: 0.75rem;
+        border: 2px solid #ddd;
+        border-radius: 5px;
+        font-size: 1rem;
+        transition: border-color 0.3s;
+      }
+
+      .form-group input:focus {
+        outline: none;
+        border-color: #667eea;
+      }
+
+      .login-button {
+        width: 100%;
+        padding: 0.75rem;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        border-radius: 5px;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: opacity 0.3s;
+      }
+
+      .login-button:hover {
+        opacity: 0.9;
+      }
+
+      .login-button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      .error-message {
+        background: #fee;
+        color: #c33;
+        padding: 0.75rem;
+        border-radius: 5px;
+        margin-bottom: 1rem;
+        border-left: 4px solid #c33;
+        display: none;
+      }
+
+      .success-message {
+        background: #efe;
+        color: #3c3;
+        padding: 0.75rem;
+        border-radius: 5px;
+        margin-bottom: 1rem;
+        border-left: 4px solid #3c3;
+        display: none;
+      }
+
+      .loading {
+        display: none;
+        text-align: center;
+        margin-top: 1rem;
+      }
+
+      .demo-credentials {
+        background: #f8f9fa;
+        padding: 1rem;
+        border-radius: 5px;
+        margin-bottom: 1rem;
+        font-size: 0.9rem;
+      }
+
+      .demo-credentials h4 {
+        margin-bottom: 0.5rem;
+        color: #555;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="login-container">
+      <div class="login-header">
+        <h1>RADIUS Management</h1>
+        <p>Please sign in to continue</p>
+      </div>
+
+      <div class="demo-credentials">
+        <h4>Demo Credentials:</h4>
+        <p><strong>Username:</strong> admin</p>
+        <p><strong>Password:</strong> admin123</p>
+      </div>
+
+      <div class="error-message" id="errorMessage"></div>
+      <div class="success-message" id="successMessage"></div>
+
+      <form id="loginForm">
+        <div class="form-group">
+          <label for="username">Username</label>
+          <input type="text" id="username" name="username" required />
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" required />
+        </div>
+
+        <button type="submit" class="login-button" id="loginButton">
+          Sign In
+        </button>
+      </form>
+
+      <div class="loading" id="loading">
+        <p>Signing in...</p>
+      </div>
+    </div>
+
+    <script>
+      loginForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const username = document.getElementById("username").value;
+        const password = document.getElementById("password").value;
+
+        if (!username || !password) {
+          showError("Please enter both username and password");
+          return;
+        }
+
+        setLoading(true);
+        hideMessages();
+
+        try {
+          const response = await fetch(`http://localhost:3002/auth/login`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ username, password }),
+          });
+
+          const data = await response.json();
+
+          if (response.ok) {
+            // Store token in localStorage
+            localStorage.setItem("authToken", data.token);
+
+            showSuccess("Login successful! Redirecting...");
+
+            // Redirect to management page after short delay
+            setTimeout(() => {
+              window.location.href = "/";
+            }, 1500);
+          } else {
+            showError(data.error || "Login failed");
+          }
+        } catch (error) {
+          console.error("Login error:", error);
+          showError("Network error. Please check if the server is running.");
+        } finally {
+          setLoading(false);
+        }
+      });
+
+      async function verifyToken(token) {
+        try {
+          const response = await fetch(`http://localhost:3002/auth/verify`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+
+          if (response.ok) {
+            // Token is valid, redirect to management
+            window.location.href = "/management";
+          } else {
+            // Token is invalid, remove from storage
+            localStorage.removeItem("authToken");
+            localStorage.removeItem("user");
+          }
+        } catch (error) {
+          console.error("Token verification error:", error);
+          localStorage.removeItem("authToken");
+          localStorage.removeItem("user");
+        }
+      }
+
+      function showError(message) {
+        errorMessage.textContent = message;
+        errorMessage.style.display = "block";
+        successMessage.style.display = "none";
+      }
+
+      function showSuccess(message) {
+        successMessage.textContent = message;
+        successMessage.style.display = "block";
+        errorMessage.style.display = "none";
+      }
+
+      function hideMessages() {
+        errorMessage.style.display = "none";
+        successMessage.style.display = "none";
+      }
+
+      function setLoading(isLoading) {
+        if (isLoading) {
+          loginButton.disabled = true;
+          loginButton.textContent = "Signing in...";
+          loading.style.display = "block";
+        } else {
+          loginButton.disabled = false;
+          loginButton.textContent = "Sign In";
+          loading.style.display = "none";
+        }
+      }
+
+      // Auto-fill demo credentials when clicking on them
+      document
+        .querySelector(".demo-credentials")
+        .addEventListener("click", () => {
+          document.getElementById("username").value = "admin";
+          document.getElementById("password").value = "admin123";
+        });
+    </script>
+  </body>
+</html>
